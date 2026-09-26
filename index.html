@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khám phá Hệ Mặt Trời</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      overflow: hidden;
+      background: #080d22;
+      font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+      color: #e2e8f0;
+      user-select: none;
+    }
+
+    #container { width: 100vw; height: 100vh; position: absolute; inset: 0; }
+
+    /* ==================== NON-BLOCKING STATUS TOAST ==================== */
+    #loading-screen {
+      position: fixed;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 16, 38, 0.85);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.25);
+      border-radius: 30px;
+      padding: 9px 22px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+      pointer-events: none;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    #loading-screen.fade-out {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-24px);
+      pointer-events: none;
+    }
+    #loading-screen.error {
+      top: 50%; bottom: auto; width: min(90vw, 540px);
+      transform: translate(-50%, -50%);
+      flex-direction: column; text-align: center;
+      border-color: #f87171; border-radius: 20px;
+      padding: 24px; pointer-events: auto;
+    }
+    #loading-screen.error .loader-ring { display: none; }
+    #loading-screen.error #loading-text { white-space: normal; line-height: 1.5; }
+    #loading-screen button {
+      padding: 9px 18px; border: 0; border-radius: 10px;
+      color: #fff; background: #0284c7; cursor: pointer;
+    }
+    .loader-ring {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    #loading-text {
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ==================== LEFT DROPDOWN NAVIGATION ==================== */
+    #dropdown-container {
+      position: fixed; top: 25px; left: 25px; z-index: 300;
+    }
+    .dropdown-btn {
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 22px;
+      padding: 10px 20px;
+      color: #f1f5f9;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dropdown-btn:hover, .dropdown-btn.open {
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
+      border-color: rgba(255,255,255,0.4);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.45), 0 0 20px rgba(56,189,248,0.15);
+      transform: translateY(-2px);
+    }
+    .dropdown-arrow {
+      font-size: 0.75rem;
+      color: #38bdf8;
+      transition: transform 0.3s ease;
+    }
+    .dropdown-btn.open .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .dropdown-menu {
+      position: absolute; top: calc(100% + 8px); left: 0;
+      width: 290px; max-height: 70vh;
+      background: linear-gradient(160deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.05);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.05);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 20px;
+      padding: 10px 6px;
+      overflow-y: auto; overflow-x: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.08);
+      opacity: 0; visibility: hidden;
+      transform: translateY(-8px) scale(0.98);
+      transition: all 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .dropdown-menu.open {
+      opacity: 1; visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+    .dropdown-menu::-webkit-scrollbar { width: 4px; }
+    .dropdown-menu::-webkit-scrollbar-track { background: transparent; }
+    .dropdown-menu::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3); border-radius: 4px;
+    }
+
+    .dropdown-group-title {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 0.65rem; font-weight: 800;
+      color: #64748b; letter-spacing: 1.5px;
+      padding: 8px 12px 4px;
+      text-transform: uppercase;
+    }
+    .dropdown-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 2px;
+    }
+    .dropdown-item:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
+      transform: translateX(4px);
+    }
+    .dropdown-item.active {
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(56,189,248,0.1) 100%);
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .item-left {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .item-icon {
+      font-size: 1.1rem; min-width: 22px; text-align: center;
+    }
+    .item-name {
+      font-size: 0.82rem; font-weight: 600; color: #f1f5f9;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .item-badge {
+      font-size: 0.68rem; color: #94a3b8;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background: rgba(255,255,255,0.05);
+      padding: 2px 7px; border-radius: 12px;
+    }
+
+    /* ==================== BOTTOM CONTROLS ==================== */
+    #controls {
+      position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; z-index: 180;
+      max-width: calc(100vw - 24px); overflow-x: auto;
+      scrollbar-width: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.08);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 50px; padding: 7px 18px;
+      align-items: center;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.08);
+      transition: opacity 0.3s;
+    }
+    #controls::-webkit-scrollbar { display: none; }
+    #controls > * { flex: 0 0 auto; white-space: nowrap; }
+    #speed-controls, #view-controls { display: contents; }
+    #mobile-hint { display: none; }
+    body.viewing-body #controls {
+      left: calc((100vw - 480px) / 2);
+      max-width: calc(100vw - 504px);
+    }
+    body.viewing-body #date-display {
+      left: calc((100vw - 480px) / 2);
+      max-width: calc(100vw - 504px);
+      top: 80px;
+    }
+    #open-settings {
+      position: fixed; top: 20px; right: 20px; z-index: 185;
+      padding: 10px 16px; background: rgba(30, 43, 75, 0.9);
+      border-color: rgba(125, 211, 252, 0.35);
+    }
+    body.viewing-body #open-settings { display: none; }
+    .ctrl-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #94a3b8; border-radius: 20px;
+      padding: 6px 14px; font-size: 0.75rem;
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 600;
+    }
+    .ctrl-btn:hover, .ctrl-btn.active {
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(56,189,248,0.15) 100%);
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(56,189,248,0.15), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .ctrl-divider {
+      width: 1px; height: 22px;
+      background: rgba(255,255,255,0.12);
+      margin: 0 2px;
+    }
+
+    /* ==================== INFO PANEL ==================== */
+    #info-panel {
+      position: fixed; right: -520px; top: 0;
+      width: 480px; height: 100vh;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.05);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.05);
+      border-left: 1px solid rgba(255,255,255,0.2);
+      transition: right 0.55s cubic-bezier(0.2, 0.9, 0.3, 1);
+      z-index: 100;
+      overflow-y: auto; overflow-x: hidden;
+      padding-bottom: 24px;
+      box-shadow: -20px 0 64px rgba(0,0,0,0.3), inset 1px 0 0 rgba(255,255,255,0.3);
+    }
+    #info-panel.active { right: 0; }
+    #info-panel::-webkit-scrollbar { width: 5px; }
+    #info-panel::-webkit-scrollbar-track { background: transparent; }
+    #info-panel::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.16); border-radius: 4px;
+    }
+
+    .panel-header {
+      position: relative; padding: 36px 30px 26px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .panel-header::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--planet-gradient);
+      opacity: 0.18; pointer-events: none;
+    }
+    .planet-name-vi {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 2.1rem; font-weight: 900;
+      color: var(--planet-color, #38bdf8);
+      text-shadow: 0 0 35px var(--planet-glow, rgba(56,189,248,0.4));
+      position: relative;
+    }
+    .planet-name-en {
+      font-size: 0.82rem; color: #94a3b8;
+      margin-top: 4px; letter-spacing: 3px;
+      text-transform: uppercase; position: relative;
+      font-weight: 600;
+    }
+    .planet-tagline {
+      font-size: 0.88rem; color: #cbd5e1;
+      margin-top: 12px; font-style: italic;
+      line-height: 1.5; position: relative;
+    }
+
+    .panel-content { padding: 22px 28px 45px; }
+
+    .info-section {
+      margin-bottom: 20px;
+      padding: 16px 18px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+    .info-section-title {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 0.72rem; font-weight: 800;
+      color: var(--planet-color, #38bdf8);
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .info-row {
+      display: flex; justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label {
+      font-size: 0.8rem; color: #94a3b8;
+    }
+    .info-value {
+      font-size: 0.84rem; color: #f1f5f9;
+      font-weight: 500; text-align: right;
+    }
+    .info-text {
+      font-size: 0.84rem; color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    /* Atmosphere bars */
+    .atmo-bar {
+      display: flex; align-items: center; gap: 10px;
+      margin: 6px 0;
+    }
+    .atmo-bar-fill {
+      height: 7px; border-radius: 4px;
+      background: var(--planet-color, #38bdf8);
+      box-shadow: 0 0 10px var(--planet-glow, rgba(56,189,248,0.3));
+      transition: width 0.8s ease;
+    }
+    .atmo-bar-label { font-size: 0.75rem; color: #94a3b8; min-width: 42px; text-align: right; }
+    .atmo-bar-name { font-size: 0.8rem; color: #e2e8f0; min-width: 52px; font-weight: 500; }
+
+    /* Gravity / Weight interactive box */
+    .weight-box {
+      background: rgba(56, 189, 248, 0.04);
+      border: 1px dashed rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 10px;
+    }
+    .weight-input-group {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .weight-input {
+      width: 70px; background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px; color: #fff;
+      padding: 5px 8px; font-size: 0.88rem;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      text-align: center;
+    }
+    .weight-result {
+      font-size: 0.86rem; color: #e2e8f0;
+    }
+    .weight-highlight {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 700;
+      color: var(--planet-color, #38bdf8);
+      font-size: 1.05rem;
+    }
+
+    /* ==================== BACK BUTTON ==================== */
+    #back-btn {
+      position: fixed; top: 20px; right: 20px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #f1f5f9; border-radius: 50px;
+      padding: 9px 22px; font-size: 0.82rem;
+      cursor: pointer; z-index: 150;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+    #back-btn:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.08) 100%);
+      border-color: rgba(255,255,255,0.4);
+      color: #fff;
+      transform: scale(1.05);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.45);
+    }
+
+    /* ==================== PLANET LABELS ==================== */
+    .planet-label {
+      position: absolute; pointer-events: none;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 0.7rem; font-weight: 700;
+      color: rgba(241, 245, 249, 0.9);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8);
+      letter-spacing: 1px;
+      transform: translate(-50%, -100%);
+      white-space: nowrap;
+      transition: opacity 0.25s, transform 0.25s;
+    }
+
+    /* ==================== TOOLTIP ==================== */
+    #tooltip {
+      position: fixed;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 14px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      color: #f8fafc;
+      pointer-events: none;
+      z-index: 200;
+      display: none;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+
+    .audio-indicator {
+      display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: #22c55e;
+      margin-left: 4px; box-shadow: 0 0 8px #22c55e;
+    }
+
+
+    /* ==================== SPEED SLIDER ==================== */
+    .speed-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #94a3b8; border-radius: 20px;
+      padding: 6px 12px; font-size: 0.72rem;
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 600;
+    }
+    .speed-btn:hover, .speed-btn.active {
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(56,189,248,0.15) 100%);
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(56,189,248,0.15), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .slider-group {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .slider-label {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 0.72rem; color: #38bdf8;
+      min-width: 36px; text-align: center;
+      font-weight: 700;
+    }
+    #speed-slider {
+      -webkit-appearance: none;
+      width: 100px; height: 4px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px; outline: none;
+      cursor: pointer;
+    }
+    #speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 30%, #38bdf8 100%);
+      box-shadow: 0 0 12px rgba(56,189,248,0.8), 0 0 4px rgba(255,255,255,0.5);
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    #speed-slider::-moz-range-thumb {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px rgba(56,189,248,0.6);
+      border: none;
+      cursor: pointer;
+    }
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 860px) {
+      #info-panel { width: 100vw; right: -100vw; }
+      .planet-name-vi { font-size: 1.6rem; }
+      #controls { width: 92vw; overflow-x: auto; justify-content: flex-start; }
+    }
+  
+    /* ==================== DATE DISPLAY ==================== */
+    #date-display {
+      position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
+      font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.1rem; color: #f8fafc;
+      text-shadow: 0 0 15px rgba(56,189,248,0.6); z-index: 50;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
+      padding: 8px 24px; border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35);
+      font-weight: 600; letter-spacing: 1px;
+      appearance: none;
+    }
+  
+    /* Date Display interactive styling */
+    #date-display {
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #date-display:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%);
+      transform: translateX(-50%) scale(1.04);
+      border-color: rgba(56,189,248,0.6);
+      box-shadow: 0 0 25px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+
+    /* Date Picker Modal */
+    #date-modal {
+      position: fixed; top: 85px; left: 50%; transform: translateX(-50%) scale(0.95);
+      background: linear-gradient(135deg, rgba(15,23,42,0.92) 0%, rgba(30,41,59,0.85) 100%);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+      padding: 24px;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 380px; max-width: 90vw;
+    }
+    #date-modal.open {
+      opacity: 1; pointer-events: auto;
+      transform: translateX(-50%) scale(1);
+    }
+    .modal-title {
+      font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.05rem; font-weight: 700;
+      color: #38bdf8; margin-bottom: 16px; text-align: center;
+      letter-spacing: 1px;
+    }
+    .modal-input-group {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .modal-input {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      color: #f8fafc; padding: 10px 14px;
+      font-family: 'Be Vietnam Pro', sans-serif; font-size: 0.95rem;
+      outline: none;
+    }
+    .modal-input:focus {
+      border-color: #38bdf8; box-shadow: 0 0 12px rgba(56,189,248,0.4);
+    }
+    .modal-btn-confirm {
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #fff; border: none; border-radius: 10px;
+      padding: 10px 16px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .modal-btn-confirm:hover { opacity: 0.9; }
+    .landmark-btn {
+      display: block; width: 100%; text-align: left;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 9px 14px; margin-bottom: 8px;
+      color: #cbd5e1; font-size: 0.85rem; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .landmark-btn:hover {
+      background: rgba(56,189,248,0.15); border-color: rgba(56,189,248,0.4);
+      color: #fff; transform: translateX(3px);
+    }
+
+    /* ==================== TOUR CARD ==================== */
+    #tour-card {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(10, 16, 38, 0.90);
+      backdrop-filter: blur(28px) saturate(200%);
+      -webkit-backdrop-filter: blur(28px) saturate(200%);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 25px rgba(56, 189, 248, 0.25);
+      border-radius: 22px;
+      padding: 14px 26px;
+      max-width: 520px;
+      text-align: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #tour-card.active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .tour-badge {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .tour-title {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 5px;
+    }
+    .tour-desc {
+      font-size: 0.84rem;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+    /* ==================== SCALE COMPARISON BANNER ==================== */
+    #comparison-banner {
+      position: fixed;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-24px);
+      background: rgba(10, 16, 38, 0.90);
+      backdrop-filter: blur(28px) saturate(200%);
+      -webkit-backdrop-filter: blur(28px) saturate(200%);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 25px rgba(56, 189, 248, 0.25);
+      border-radius: 25px;
+      padding: 9px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #comparison-banner.active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    @media (min-width: 1101px) and (max-width: 1200px) {
+      body.viewing-body #date-display { top: 134px; }
+    }
+    .speed-menu {
+      display: none; position: fixed; bottom: 83px; z-index: 210;
+      min-width: 130px; padding: 7px; border-radius: 16px;
+      background: rgba(20, 32, 58, 0.98);
+      border: 1px solid rgba(125, 211, 252, 0.3);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+    }
+    .speed-menu.open { display: grid; gap: 3px; }
+    .speed-menu button {
+      padding: 8px 12px; border: 0; border-radius: 10px;
+      color: #dbeafe; background: transparent; text-align: left;
+      font: 600 0.78rem 'Be Vietnam Pro', sans-serif; cursor: pointer;
+    }
+    .speed-menu button:hover, .speed-menu button.active {
+      background: rgba(56,189,248,0.18); color: #fff;
+    }
+    @media (max-width: 1100px) {
+      #dropdown-container { top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); }
+      .dropdown-btn { height: 44px; max-width: min(26vw, 210px); min-width: 124px; padding: 0 11px; gap: 5px; font-size: 0.73rem; }
+      #current-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .dropdown-menu { width: min(300px, calc(100vw - 20px)); max-height: calc(100dvh - 70px); }
+      .dropdown-item { min-height: 44px; }
+      #date-display, body.viewing-body #date-display {
+        top: max(10px, env(safe-area-inset-top)); left: 50%;
+        width: auto; max-width: 36vw; padding: 10px 12px;
+        font-size: 0.78rem; white-space: nowrap; letter-spacing: 0;
+      }
+      #open-settings { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); width: 44px; height: 44px; padding: 0; font-size: 1.15rem; }
+      #open-settings .settings-label { display: none; }
+      #controls, body.viewing-body #controls {
+        left: 50%; bottom: max(8px, env(safe-area-inset-bottom));
+        width: calc(100vw - 20px); max-width: calc(100vw - 20px);
+        display: flex; flex-direction: column; align-items: stretch;
+        gap: 5px; padding: 6px 8px; border-radius: 17px;
+        overflow: visible;
+      }
+      #controls > .ctrl-divider, #speed-controls .ctrl-divider, #view-controls .ctrl-divider { display: none; }
+      #speed-controls, #view-controls {
+        display: flex; align-items: center; gap: 6px;
+        width: 100%; min-height: 40px; overflow-x: auto; scrollbar-width: none;
+      }
+      #speed-controls::-webkit-scrollbar, #view-controls::-webkit-scrollbar { display: none; }
+      #speed-controls > *, #view-controls > * { flex: 0 0 auto; white-space: nowrap; }
+      #speed-controls .speed-btn, #speed-controls .ctrl-btn,
+      #view-controls .ctrl-btn { min-height: 40px; padding: 8px 11px; font-size: 0.73rem; color: #e2e8f0; }
+      #speed-controls .slider-group { min-height: 40px; margin-left: auto; }
+      #speed-controls .speed-btn, #speed-controls #speed-pause { font-size: 0; padding: 8px 10px; }
+      #speed-decrease::after { content: '− Chậm'; font-size: 0.7rem; }
+      #speed-increase::after { content: '+ Nhanh'; font-size: 0.7rem; }
+      #speed-pause::after { content: 'Ⅱ Dừng'; font-size: 0.7rem; }
+      #speed-pause.active::after { content: '▶ Chạy'; }
+      #speed-slider { width: clamp(72px, 18vw, 120px); height: 6px; }
+      #speed-slider::-webkit-slider-thumb { width: 23px; height: 23px; }
+      #speed-slider::-moz-range-thumb { width: 23px; height: 23px; }
+      .slider-label { min-width: 32px; }
+      #view-controls { border-top: 1px solid rgba(255,255,255,0.12); padding-top: 4px; }
+      .speed-menu { bottom: calc(108px + env(safe-area-inset-bottom)); }
+      .speed-menu button { min-height: 44px; }
+      #tooltip { display: none !important; }
+      .desktop-only-setting { display: none; }
+      #date-modal { top: 60px; z-index: 350; max-height: calc(100dvh - 70px); overflow-y: auto; padding: 16px; }
+      #settings-panel { max-height: calc(100dvh - 16px); }
+      #mobile-hint { display: none; }
+      .planet-label { font-size: 0.62rem; }
+    }
+    @media (max-width: 1100px) and (orientation: landscape) {
+      #info-panel {
+        width: clamp(300px, 41vw, 420px); height: 100dvh;
+        top: 0; bottom: auto; right: -430px; padding-bottom: 12px;
+      }
+      #info-panel.active { right: 0; }
+      body.viewing-body #controls {
+        left: calc((100vw - clamp(300px, 41vw, 420px)) / 2);
+        width: calc(100vw - clamp(300px, 41vw, 420px) - 16px);
+        max-width: calc(100vw - clamp(300px, 41vw, 420px) - 16px);
+      }
+      body.viewing-body #date-display {
+        left: calc((100vw - clamp(300px, 41vw, 420px)) / 2);
+        max-width: calc(100vw - clamp(300px, 41vw, 420px) - 145px);
+        top: 60px;
+      }
+      #back-btn { top: 10px; right: 10px; min-height: 40px; padding: 6px 10px; font-size: 0.7rem; }
+      .panel-header { padding: 64px 18px 18px; }
+      .planet-name-vi { font-size: 1.65rem; }
+      .panel-content { padding: 14px 16px 20px; }
+      .info-section { padding: 12px; margin-bottom: 12px; }
+      body.viewing-body .speed-menu { bottom: calc(108px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-width: 1100px) and (orientation: portrait) {
+      #dropdown-container { top: calc(60px + env(safe-area-inset-top)); }
+      .dropdown-btn { max-width: min(58vw, 240px); }
+      #date-display, body.viewing-body #date-display { top: max(10px, env(safe-area-inset-top)); max-width: calc(100vw - 90px); }
+      #mobile-hint {
+        display: block; position: fixed; top: calc(114px + env(safe-area-inset-top));
+        left: 50%; transform: translateX(-50%); z-index: 45;
+        max-width: calc(100vw - 20px); padding: 6px 10px;
+        border-radius: 12px; background: rgba(10,16,38,0.72);
+        color: #b9d8eb; font-size: 0.67rem; text-align: center;
+        line-height: 1.5; white-space: nowrap;
+        pointer-events: none;
+      }
+      body.viewing-body #mobile-hint { display: none; }
+      #info-panel {
+        width: 100vw; height: 46dvh; top: auto; right: 0; bottom: -46dvh;
+        transition: bottom 0.35s ease; border-left: 0;
+        border-top: 1px solid rgba(255,255,255,0.25); padding-bottom: 20px;
+      }
+      #info-panel.active { right: 0; bottom: 0; }
+      #back-btn { top: calc(54dvh + 9px); right: 12px; min-height: 40px; padding: 7px 11px; font-size: 0.7rem; }
+      .panel-header { padding: 14px 18px 12px; padding-right: 148px; }
+      .planet-name-vi { font-size: 1.45rem; }
+      .planet-name-en { font-size: 0.66rem; margin-top: 2px; }
+      .planet-tagline { font-size: 0.75rem; margin-top: 6px; }
+      .panel-content { padding: 14px 16px 20px; }
+      .info-section { padding: 12px; margin-bottom: 12px; }
+      body.viewing-body #controls { bottom: calc(46dvh + 8px); }
+      body.viewing-body .speed-menu { bottom: calc(46dvh + 108px); }
+      #comparison-banner { top: auto; bottom: 110px; width: calc(100vw - 20px); padding: 9px 14px; border-radius: 16px; }
+    }
+    @media (max-width: 370px) {
+      #speed-controls .speed-btn, #speed-controls .ctrl-btn { padding: 8px 6px; font-size: 0; }
+      #speed-decrease::after, #speed-increase::after, #speed-pause::after { font-size: 0.66rem; }
+      #speed-controls .slider-group { gap: 4px; }
+      #speed-controls .slider-label { min-width: 26px; }
+      #speed-slider { width: 54px; }
+    }
+    @media (max-width: 700px) and (orientation: landscape) {
+      #speed-controls .speed-btn { font-size: 0; padding: 8px; }
+      #speed-decrease::after { content: '− Chậm'; font-size: 0.68rem; }
+      #speed-increase::after { content: '+ Nhanh'; font-size: 0.68rem; }
+      #speed-controls #speed-pause { padding: 8px; }
+      #speed-slider { width: 72px; }
+    }
+
+    #settings-backdrop {
+      position: fixed; inset: 0; z-index: 390;
+      background: rgba(2, 6, 23, 0.55);
+    }
+    #settings-panel {
+      position: fixed; top: 20px; right: 20px; z-index: 400;
+      width: min(380px, calc(100vw - 24px));
+      max-height: calc(100vh - 40px);
+      display: flex; flex-direction: column;
+      background: linear-gradient(150deg, rgba(30, 43, 75, 0.98), rgba(9, 17, 39, 0.98));
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      border-radius: 22px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+      color: #f1f5f9;
+    }
+    #settings-backdrop:not(.open), #settings-panel:not(.open) { display: none; }
+    .settings-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; padding: 20px 20px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .settings-header h2 { font-size: 1.15rem; color: #7dd3fc; }
+    .settings-header p { font-size: 0.76rem; color: #a8b8d4; margin-top: 4px; }
+    #settings-close {
+      border: 0; border-radius: 50%; width: 32px; height: 32px;
+      background: rgba(255,255,255,0.1); color: #fff;
+      font-size: 1.35rem; cursor: pointer; flex: 0 0 auto;
+    }
+    .settings-content { overflow-y: auto; padding: 12px 20px 22px; }
+    .settings-group { margin-top: 12px; }
+    .settings-group h3 {
+      color: #7dd3fc; font-size: 0.78rem; letter-spacing: 0.04em;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; min-height: 44px; padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      cursor: pointer; font-size: 0.86rem;
+    }
+    .setting-row input { width: 19px; height: 19px; accent-color: #38bdf8; flex: 0 0 auto; }
+    .settings-actions { display: flex; gap: 8px; margin: 8px 0 2px; }
+    .settings-actions button {
+      flex: 1; border: 1px solid rgba(125,211,252,0.28);
+      border-radius: 12px; padding: 8px 10px;
+      background: rgba(56,189,248,0.1); color: #dff7ff;
+      cursor: pointer; font: inherit; font-size: 0.78rem;
+    }
+    .dropdown-item.hidden-by-setting { display: none; }
+    #settings-close:focus-visible, .setting-row input:focus-visible,
+    .settings-actions button:focus-visible, #open-settings:focus-visible {
+      outline: 2px solid #7dd3fc; outline-offset: 2px;
+    }
+    @media (max-width: 860px) {
+      #settings-panel {
+        top: auto; right: 0; bottom: 0; width: 100%;
+        max-height: min(78vh, 680px); border-radius: 22px 22px 0 0;
+      }
+    }
+    /* View tools, first-use help and scale explanations. */
+    #camera-tools {
+      position: fixed; right: 20px; top: 80px; z-index: 180;
+      display: grid; gap: 5px; padding: 5px; border-radius: 16px;
+      background: rgba(10, 18, 39, 0.84); border: 1px solid rgba(125,211,252,0.25);
+    }
+    #camera-tools button { width: 44px; height: 44px; padding: 0; font-size: 1.15rem; color: #e2e8f0; }
+    body.viewing-body #camera-tools { right: 490px; }
+    #info-collapse { display: none; }
+    #scale-note[hidden] { display: none; }
+    #scale-note {
+      position: fixed; top: 82px; left: 50%; transform: translateX(-50%);
+      z-index: 350; width: min(400px, calc(100vw - 24px)); padding: 18px 20px;
+      background: rgba(14, 27, 50, 0.97); border: 1px solid rgba(125,211,252,0.45);
+      border-radius: 18px; box-shadow: 0 16px 50px rgba(0,0,0,0.4);
+    }
+    body.viewing-body #scale-note { left: calc((100vw - 480px) / 2); }
+    #scale-note h2 { padding-right: 36px; font-size: 0.95rem; color: #7dd3fc; }
+    #scale-note p, #scale-note li { font-size: 0.79rem; line-height: 1.6; margin-top: 10px; }
+    #scale-note ul { padding-left: 16px; }
+    #scale-note-close { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; padding: 0; font-size: 1.2rem; }
+    #gesture-guide {
+      margin: auto; width: min(440px, calc(100vw - 28px)); max-height: calc(100dvh - 28px);
+      overflow-y: auto; border: 1px solid #446880; border-radius: 22px;
+      padding: 24px; color: #e2e8f0; background: #101d35; font: inherit;
+      box-shadow: 0 24px 90px rgba(0,0,0,0.6);
+    }
+    #gesture-guide::backdrop { background: rgba(2,6,23,0.72); }
+    #gesture-guide h2 { color: #7dd3fc; font-size: 1.2rem; }
+    #gesture-guide p { margin: 12px 0; font-size: 0.83rem; line-height: 1.6; color: #bdd0e2; }
+    .gesture-list { display: grid; gap: 10px; list-style: none; }
+    .gesture-list li { padding: 10px 12px; background: #1a2d46; border-radius: 12px; font-size: 0.84rem; line-height: 1.5; }
+    #gesture-guide-close { width: 100%; min-height: 44px; margin-top: 18px; background: #0377a8; color: #fff; }
+    @media (max-width: 1100px) {
+      #camera-tools { right: max(10px, env(safe-area-inset-right)); top: 64px; }
+      #scale-note { top: 62px; }
+      #scale-note-close { width: 40px; height: 40px; }
+    }
+    @media (max-width: 1100px) and (orientation: landscape) {
+      body.viewing-body #camera-tools { right: calc(clamp(300px, 41vw, 420px) + 10px); top: 110px; }
+      body.viewing-body #scale-note { left: calc((100vw - clamp(300px, 41vw, 420px)) / 2); width: calc(100vw - clamp(300px, 41vw, 420px) - 20px); max-height: calc(100dvh - 74px); overflow-y: auto; }
+    }
+    @media (max-width: 1100px) and (orientation: portrait) {
+      body.viewing-body #camera-tools { right: 10px; }
+      body.viewing-body #scale-note { left: 50%; max-height: calc(54dvh - 74px); overflow-y: auto; }
+      body.viewing-body #info-collapse {
+        display: block; position: fixed; z-index: 155; top: calc(54dvh + 9px);
+        right: 133px; width: 44px; height: 44px; padding: 0; font-size: 1.3rem;
+      }
+      #back-btn { min-height: 44px; }
+      .panel-header { padding-right: 18px; }
+      .planet-name-vi, .planet-name-en { max-width: calc(100vw - 200px); }
+      body.info-collapsed #info-panel { height: 88px; }
+      body.info-collapsed #panel-content, body.info-collapsed #p-tagline, body.info-collapsed #p-name-en { display: none; }
+      body.info-collapsed #info-panel .panel-header { border: 0; }
+      body.info-collapsed #p-name-vi { font-size: 1.1rem; }
+      body.info-collapsed #controls { bottom: 96px; }
+      body.info-collapsed .speed-menu { bottom: 196px; }
+      body.info-collapsed #info-collapse, body.info-collapsed #back-btn { top: calc(100dvh - 79px); }
+    }
+    #fullscreen-toggle {
+      position: fixed; right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom)); z-index: 380;
+      width: 44px; height: 44px; padding: 0; font-size: 1.5rem;
+      background: rgba(18, 33, 54, .8); color: #ccecff;
+    }
+    body.viewing-body #fullscreen-toggle { bottom: auto; top: max(12px, env(safe-area-inset-top)); right: 490px; }
+    body.immersive-view > :not(#container):not(#fullscreen-toggle):not(script) { display: none !important; }
+    body.immersive-view #fullscreen-toggle { top: auto; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); opacity: .6; }
+    body.immersive-view #fullscreen-toggle:hover, body.immersive-view #fullscreen-toggle:focus-visible { opacity: 1; }
+    @media (max-width: 1100px) {
+      #fullscreen-toggle { top: max(10px, env(safe-area-inset-top)); bottom: auto; right: 64px; }
+      body.viewing-body #fullscreen-toggle { top: max(10px, env(safe-area-inset-top)); right: 10px; }
+      body.viewing-body.immersive-view #fullscreen-toggle { top: auto; right: 12px; }
+    }
+    @media (max-width: 1100px) and (orientation: landscape) {
+      body.viewing-body #fullscreen-toggle { right: calc(clamp(300px, 41vw, 420px) + 10px); }
+    }
+    @media (max-width: 1100px) and (orientation: portrait) {
+      #date-display, body.viewing-body #date-display { left: calc(50% - 24px); max-width: calc(100vw - 150px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Non-blocking Floating Status Toast -->
+  <div id="loading-screen">
+    <div class="loader-ring"></div>
+    <div id="loading-text">✨ Đang nạp dữ liệu vũ trụ chân thực...</div>
+  </div>
+
+  <!-- Comparison Banner -->
+  <div id="comparison-banner">
+    <span style="font-size:1.2rem;">📏</span>
+    <div>
+      <div style="font-family:'Be Vietnam Pro',sans-serif;font-size:0.84rem;font-weight:700;color:#38bdf8;letter-spacing:1px;">CHẾ ĐỘ XẾP HÀNG SO SÁNH QUY MÔ THỰC TẾ</div>
+      <div style="font-size:0.75rem;color:#94a3b8;">Tỉ lệ đường kính xấp xỉ: Mặt Trời gấp 10× Sao Mộc và hơn 100× Trái Đất.</div>
+    </div>
+  </div>
+
+  <!-- 3D Container -->
+  <div id="container"></div>
+
+  <!-- Title -->
+    <!-- Date Display -->
+  <button id="date-display" type="button" title="Nhấp để chọn ngày quan sát">
+    📅 Ngày 01 Tháng 01 Năm 2024
+  </button>
+
+  <!-- Be Vietnam Proactive Date Picker Modal -->
+  <div id="date-modal">
+    <div class="modal-title">📅 CHỌN THỜI ĐIỂM QUAN SÁT</div>
+    <p style="font-size:0.75rem;color:#94a3b8;line-height:1.45;margin-bottom:12px;">Vị trí tám hành tinh là xấp xỉ từ phần tử quỹ đạo J2000, phù hợp trong khoảng năm 0001–3000. Sao Diêm Vương, sao chổi, vệ tinh và tàu vũ trụ là mô hình minh họa. Chọn ngày sẽ tạm dừng chuyển động để quan sát.</p>
+    <div class="modal-input-group">
+      <input type="date" id="date-input" class="modal-input" value="2024-01-01" min="0001-01-01" max="3000-12-31" aria-label="Ngày quan sát">
+      <button id="date-confirm-btn" class="modal-btn-confirm">Đi tới</button>
+    </div>
+    <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Sự kiện lịch sử nổi bật:</div>
+    <button class="landmark-btn" data-date="1969-07-20">🚀 Apollo 11 hạ cánh Mặt Trăng (20/07/1969)</button>
+    <button class="landmark-btn" data-date="1977-09-05">🛰️ Tàu Voyager 1 bắt đầu hành trình (05/09/1977)</button>
+    <button class="landmark-btn" data-date="2000-01-01">🔭 Kỷ nguyên J2000 Thiên văn (01/01/2000)</button>
+    <button class="landmark-btn" data-date="today">🌍 Thời điểm hiện tại (Hôm nay)</button>
+  </div>
+
+  <!-- Left Dropdown Navigation Menu -->
+  <div id="dropdown-container">
+    <button id="dropdown-toggle" class="dropdown-btn">
+      <span id="current-icon">🪐</span>
+      <span id="current-label">Khám Phá Thiên Thể</span>
+      <span class="dropdown-arrow">▼</span>
+    </button>
+    <div id="dropdown-menu" class="dropdown-menu">
+      <!-- 1. Star -->
+      <div class="dropdown-group-title">⭐ Ngôi Sao Trung Tâm</div>
+      <div class="dropdown-item" data-target="sun">
+        <div class="item-left"><span class="item-icon">☀️</span><span class="item-name">Mặt Trời</span></div>
+        <span class="item-badge">Trung tâm</span>
+      </div>
+
+      <!-- 2. Terrestrial Planets -->
+      <div class="dropdown-group-title">🌍 Hành Tinh Đất Đá</div>
+      <div class="dropdown-item" data-target="mercury">
+        <div class="item-left"><span class="item-icon">☿</span><span class="item-name">Sao Thủy</span></div>
+        <span class="item-badge">0.39 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="venus">
+        <div class="item-left"><span class="item-icon">♀</span><span class="item-name">Sao Kim</span></div>
+        <span class="item-badge">0.72 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="earth">
+        <div class="item-left"><span class="item-icon">🌍</span><span class="item-name">Trái Đất</span></div>
+        <span class="item-badge">1.00 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="moon">
+        <div class="item-left"><span class="item-icon">🌙</span><span class="item-name">Mặt Trăng</span></div>
+        <span class="item-badge">Vệ tinh</span>
+      </div>
+      <div class="dropdown-item" data-target="mars">
+        <div class="item-left"><span class="item-icon">🔴</span><span class="item-name">Sao Hỏa</span></div>
+        <span class="item-badge">1.52 AU</span>
+      </div>
+
+      <!-- 3. Asteroid Belt -->
+      <div class="dropdown-group-title">☄️ Vành Đai Tiểu Hành Tinh</div>
+      <div class="dropdown-item" data-target="asteroid-belt">
+        <div class="item-left"><span class="item-icon">☄️</span><span class="item-name">Tiểu Hành Tinh</span></div>
+        <span class="item-badge">2.7 AU</span>
+      </div>
+
+      <!-- 4. Gas & Ice Giants -->
+      <div class="dropdown-group-title">🪐 Khổng Lồ Khí & Băng</div>
+      <div class="dropdown-item" data-target="jupiter">
+        <div class="item-left"><span class="item-icon">🟤</span><span class="item-name">Sao Mộc</span></div>
+        <span class="item-badge">5.20 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="saturn">
+        <div class="item-left"><span class="item-icon">🪐</span><span class="item-name">Sao Thổ</span></div>
+        <span class="item-badge">9.58 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="uranus">
+        <div class="item-left"><span class="item-icon">🔵</span><span class="item-name">Sao Thiên Vương</span></div>
+        <span class="item-badge">19.2 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="neptune">
+        <div class="item-left"><span class="item-icon">🔵</span><span class="item-name">Sao Hải Vương</span></div>
+        <span class="item-badge">30.1 AU</span>
+      </div>
+
+      <!-- 5. Major Moons -->
+      <div class="dropdown-group-title">🌕 Vệ Tinh Nổi Bật</div>
+      <div class="dropdown-item" data-target="moon">
+        <div class="item-left"><span class="item-icon">🌙</span><span class="item-name">Mặt Trăng (Trái Đất)</span></div>
+        <span class="item-badge">1.0 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="io">
+        <div class="item-left"><span class="item-icon">🌕</span><span class="item-name">Io (Sao Mộc)</span></div>
+        <span class="item-badge">Núi lửa</span>
+      </div>
+      <div class="dropdown-item" data-target="europa">
+        <div class="item-left"><span class="item-icon">❄️</span><span class="item-name">Europa (Sao Mộc)</span></div>
+        <span class="item-badge">Băng ngầm</span>
+      </div>
+      <div class="dropdown-item" data-target="ganymede">
+        <div class="item-left"><span class="item-icon">🌑</span><span class="item-name">Ganymede (Sao Mộc)</span></div>
+        <span class="item-badge">Lớn nhất</span>
+      </div>
+      <div class="dropdown-item" data-target="callisto">
+        <div class="item-left"><span class="item-icon">🌑</span><span class="item-name">Callisto (Sao Mộc)</span></div>
+        <span class="item-badge">Hố va chạm</span>
+      </div>
+      <div class="dropdown-item" data-target="titan">
+        <div class="item-left"><span class="item-icon">🪐</span><span class="item-name">Titan (Sao Thổ)</span></div>
+        <span class="item-badge">Khí quyển dày</span>
+      </div>
+
+      <!-- 6. Spacecraft & Stations -->
+      <div class="dropdown-group-title">🛰️ Tàu Thám Hiểm & Trạm Vũ Trụ</div>
+      <div class="dropdown-item" data-target="iss">
+        <div class="item-left"><span class="item-icon">🛰️</span><span class="item-name">Trạm Vũ Trụ ISS</span></div>
+        <span class="item-badge">408 km</span>
+      </div>
+      <div class="dropdown-item" data-target="voyager1">
+        <div class="item-left"><span class="item-icon">🛰️</span><span class="item-name">Tàu Voyager 1</span></div>
+        <span class="item-badge">162.5 AU</span>
+      </div>
+      <div class="dropdown-item" data-target="voyager2">
+        <div class="item-left"><span class="item-icon">🛰️</span><span class="item-name">Tàu Voyager 2</span></div>
+        <span class="item-badge">136.2 AU</span>
+      </div>
+
+      <!-- 7. Dwarf Planet -->
+      <div class="dropdown-group-title">❄️ Hành Tinh Lùn</div>
+      <div class="dropdown-item" data-target="pluto">
+        <div class="item-left"><span class="item-icon">❄️</span><span class="item-name">Sao Diêm Vương</span></div>
+        <span class="item-badge">39.5 AU</span>
+      </div>
+
+      <!-- 8. Comets -->
+      <div class="dropdown-group-title">☄️ Sao Chổi</div>
+      <div class="dropdown-item" data-target="halley">
+        <div class="item-left"><span class="item-icon">☄️</span><span class="item-name">Sao Chổi Halley</span></div>
+        <span class="item-badge">Chu kỳ 76 năm</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Controls -->
+  <button class="ctrl-btn" id="open-settings" type="button" aria-label="Cài đặt" aria-haspopup="dialog" aria-controls="settings-panel" aria-expanded="false">⚙ <span class="settings-label">Cài đặt</span></button>
+  <div id="controls">
+    <div id="speed-controls">
+      <button class="speed-btn" id="speed-decrease" type="button" aria-label="Giảm tốc" aria-haspopup="menu" aria-controls="speed-decrease-menu" aria-expanded="false">− Giảm tốc</button>
+      <button class="ctrl-btn" id="speed-pause" type="button">⏸ Dừng</button>
+      <button class="speed-btn" id="speed-increase" type="button" aria-label="Tăng tốc" aria-haspopup="menu" aria-controls="speed-increase-menu" aria-expanded="false">+ Tăng tốc</button>
+      <div class="ctrl-divider"></div>
+      <div class="slider-group">
+        <span class="slider-label" id="speed-label">1×</span>
+        <input type="range" id="speed-slider" min="0" max="8" value="3" step="1" aria-label="Tốc độ mô phỏng" title="1× = 1 ngày mô phỏng mỗi giây thực; Trái Đất tự quay 30 giây mỗi vòng">
+      </div>
+    </div>
+    <div class="ctrl-divider"></div>
+    <div id="view-controls">
+      <button class="ctrl-btn active" id="toggle-scale" title="Chuyển đổi giữa Chế độ Trực Quan và Tỉ Lệ Thật">🔭 Trực quan</button>
+      <div class="ctrl-divider"></div>
+      <button class="ctrl-btn active" id="toggle-orbits">◯ Quỹ đạo</button>
+      <button class="ctrl-btn active" id="toggle-labels">Ⓐ Nhãn</button>
+      <button class="ctrl-btn" id="toggle-compare" title="Xếp hàng các hành tinh cạnh nhau để so sánh kích thước">📏 So sánh</button>
+      <button class="ctrl-btn" id="toggle-audio">🔇 Âm thanh</button>
+      <button class="ctrl-btn" id="scale-help" type="button" aria-label="Giải thích tỉ lệ">ⓘ Tỉ lệ</button>
+      <button class="ctrl-btn" id="view-help" type="button" aria-label="Hướng dẫn thao tác">? Thao tác</button>
+    </div>
+  </div>
+  <div id="mobile-hint" aria-hidden="true">↻ Xoay ngang để xem rộng hơn<br>Chạm chọn · Vuốt xoay · Chụm để phóng</div>
+  <div id="camera-tools" role="group" aria-label="Điều khiển góc nhìn">
+    <button class="ctrl-btn" id="view-zoom-in" type="button" aria-label="Phóng gần" title="Phóng gần">+</button>
+    <button class="ctrl-btn" id="view-zoom-out" type="button" aria-label="Phóng xa" title="Phóng xa">−</button>
+    <button class="ctrl-btn" id="view-reset" type="button" aria-label="Góc nhìn mặc định" title="Góc nhìn mặc định">↺</button>
+  </div>
+  <button class="ctrl-btn" id="fullscreen-toggle" type="button" aria-label="Toàn màn hình, ẩn giao diện" aria-pressed="false" title="Toàn màn hình, ẩn giao diện">⤢</button>
+  <dialog id="gesture-guide" aria-labelledby="gesture-guide-title">
+    <h2 id="gesture-guide-title">Khám phá bằng thao tác đơn giản</h2>
+    <p>Màn hình ngang cho nhiều không gian quan sát hơn. Bạn vẫn có thể dùng màn hình dọc và thu gọn bảng thông tin.</p>
+    <ul class="gesture-list">
+      <li>☝ Chạm vào thiên thể hoặc chọn từ menu để xem gần.</li>
+      <li>↔ Vuốt một ngón để xoay góc nhìn. Trên máy tính, kéo chuột trái.</li>
+      <li>🤏 Chụm hoặc tách hai ngón để phóng xa/gần. Bạn cũng có thể dùng nút + / − hoặc cuộn chuột.</li>
+      <li>✌ Kéo hai ngón để dịch khung nhìn. Nút ↺ đưa góc nhìn về mặc định.</li>
+    </ul>
+    <button class="ctrl-btn" id="gesture-guide-close" type="button">Đã hiểu, bắt đầu khám phá</button>
+  </dialog>
+  <section id="scale-note" role="status" aria-live="polite" hidden>
+    <button class="ctrl-btn" id="scale-note-close" type="button" aria-label="Đóng giải thích tỉ lệ">×</button>
+    <h2 id="scale-note-title"></h2>
+    <p id="scale-note-description"></p>
+    <ul id="scale-note-facts"></ul>
+  </section>
+  <div class="speed-menu" id="speed-decrease-menu" role="menu" aria-label="Chọn tốc độ chậm">
+    <button type="button" role="menuitem" data-speed="0.5">0,5×</button>
+    <button type="button" role="menuitem" data-speed="0.25">0,25×</button>
+    <button type="button" role="menuitem" data-speed="0.1">0,1×</button>
+  </div>
+  <div class="speed-menu" id="speed-increase-menu" role="menu" aria-label="Chọn tốc độ nhanh">
+    <button type="button" role="menuitem" data-speed="5">5×</button>
+    <button type="button" role="menuitem" data-speed="10">10×</button>
+    <button type="button" role="menuitem" data-speed="20">20×</button>
+    <button type="button" role="menuitem" data-speed="50">50×</button>
+    <button type="button" role="menuitem" data-speed="100">100×</button>
+  </div>
+
+  <div id="settings-backdrop" aria-hidden="true"></div>
+  <section id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
+    <div class="settings-header">
+      <div>
+        <h2 id="settings-title">⚙ Cài đặt hiển thị</h2>
+        <p>Các lựa chọn được lưu trên trình duyệt này.</p>
+      </div>
+      <button id="settings-close" type="button" aria-label="Đóng cài đặt">×</button>
+    </div>
+    <div class="settings-content">
+      <div class="settings-group">
+        <h3>Thông tin hiển thị</h3>
+        <label class="setting-row"><span>Đường quỹ đạo</span><input type="checkbox" data-setting="showOrbits" checked></label>
+        <label class="setting-row"><span>Nhãn hành tinh</span><input type="checkbox" data-setting="showLabels" checked></label>
+        <label class="setting-row desktop-only-setting"><span>Gợi ý khi rê chuột</span><input type="checkbox" data-setting="showTooltips" checked></label>
+        <label class="setting-row"><span>Thông số vật lý</span><input type="checkbox" data-setting="physicalInfo" checked></label>
+        <label class="setting-row"><span>Thông tin quỹ đạo</span><input type="checkbox" data-setting="orbitalInfo" checked></label>
+        <label class="setting-row"><span>Sao chổi Halley</span><input type="checkbox" data-setting="showHalley" checked></label>
+      </div>
+      <div class="settings-group">
+        <h3>Vệ tinh và tàu vũ trụ</h3>
+        <div class="settings-actions">
+          <button type="button" id="show-all-satellites">Hiện tất cả</button>
+          <button type="button" id="hide-all-satellites">Ẩn tất cả</button>
+        </div>
+        <label class="setting-row"><span>Mặt Trăng</span><input type="checkbox" data-satellite="moon" checked></label>
+        <label class="setting-row"><span>Io</span><input type="checkbox" data-satellite="io" checked></label>
+        <label class="setting-row"><span>Europa</span><input type="checkbox" data-satellite="europa" checked></label>
+        <label class="setting-row"><span>Ganymede</span><input type="checkbox" data-satellite="ganymede" checked></label>
+        <label class="setting-row"><span>Callisto</span><input type="checkbox" data-satellite="callisto" checked></label>
+        <label class="setting-row"><span>Titan</span><input type="checkbox" data-satellite="titan" checked></label>
+        <label class="setting-row"><span>Trạm ISS</span><input type="checkbox" data-satellite="iss" checked></label>
+        <label class="setting-row"><span>Voyager 1</span><input type="checkbox" data-satellite="voyager1" checked></label>
+        <label class="setting-row"><span>Voyager 2</span><input type="checkbox" data-satellite="voyager2" checked></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- Back Button -->
+  <button id="back-btn">← Toàn Cảnh Hệ</button>
+  <button class="ctrl-btn" id="info-collapse" type="button" aria-label="Thu gọn thông tin" aria-controls="panel-content" aria-expanded="true">⌄</button>
+
+  <!-- Info Panel -->
+  <div id="info-panel">
+    <div class="panel-header">
+      <div class="planet-name-vi" id="p-name-vi"></div>
+      <div class="planet-name-en" id="p-name-en"></div>
+      <div class="planet-tagline" id="p-tagline"></div>
+    </div>
+    <div class="panel-content" id="panel-content"></div>
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip"></div>
+
+  <!-- Planet Labels Container -->
+  <div id="labels-container"></div>
+
+  <!-- Three.js -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module" src="js/main.js"></script>
+  <script>
+    window.astraStartup = {
+      status: 'pending',
+      ready: function() {
+        this.status = 'ready';
+        clearTimeout(window.astraStartupTimeout);
+        var toast = document.getElementById('loading-screen');
+        if (toast) {
+          toast.classList.add('fade-out');
+          setTimeout(function() { toast.remove(); }, 500);
+        }
+      },
+      fail: function(message) {
+        if (this.status === 'ready') return;
+        this.status = 'failed';
+        clearTimeout(window.astraStartupTimeout);
+        var toast = document.getElementById('loading-screen');
+        var text = document.getElementById('loading-text');
+        if (!toast || !text) return;
+        text.textContent = message;
+        toast.classList.add('error');
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.textContent = 'Thử lại';
+        retry.addEventListener('click', function() { window.location.reload(); });
+        if (!toast.querySelector('button')) toast.appendChild(retry);
+      }
+    };
+    window.addEventListener('error', function(event) {
+      if (event.target && event.target.tagName === 'SCRIPT') {
+        window.astraStartup.fail('Không tải được mã 3D. Hãy kiểm tra kết nối mạng rồi thử lại.');
+      }
+    }, true);
+    window.astraStartupTimeout = setTimeout(function() {
+      if (window.astraStartup.status === 'pending') {
+        window.astraStartup.fail('Mô phỏng tải quá lâu. Hãy kiểm tra kết nối mạng hoặc WebGL rồi thử lại.');
+      }
+    }, 20000);
+
+    // Protocol check: warn user if index.html was opened directly via file:// instead of http://
+    if (window.location.protocol === 'file:') {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(6,10,28,0.96);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#f8fafc;font-family:system-ui,-apple-system,sans-serif;';
+      overlay.innerHTML = '<div style="font-size:54px;margin-bottom:16px;">🚀</div>' +
+        '<h2 style="font-size:24px;font-weight:700;color:#38bdf8;margin-bottom:12px;">Cần Khởi Động Qua Web Server Local</h2>' +
+        '<p style="font-size:15px;color:#94a3b8;max-width:560px;line-height:1.6;margin-bottom:24px;">' +
+        'Trình duyệt bảo mật chặn các module 3D khi mở trực tiếp file <code>index.html</code> (giao thức <code>file://</code>).<br>' +
+        'Vui lòng nhấp đúp file <b><code style="color:#fbbf24;">start.bat</code></b> trong thư mục dự án Astra hoặc truy cập đường dẫn:' +
+        '</p>' +
+        '<a href="http://localhost:8000" style="padding:13px 32px;background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;text-decoration:none;border-radius:9999px;font-weight:700;font-size:16px;box-shadow:0 0 25px rgba(56,189,248,0.5);display:inline-block;">👉 Mở http://localhost:8000</a>';
+      document.body.appendChild(overlay);
+    }
+  </script>
+</body>
+</html>
