@@ -37,6 +37,9 @@ import { getHalleyVisualPosition } from './halley-visual.js';
 import { isZoomed, selectedObject, cameraTween, updateCameraTween } from './interaction.js';
 import { updateVisualAssets } from './visual-assets.js';
 import { EARTH_TURN_SECONDS, advanceRotation, rotationStep } from './rotation.js';
+import { language } from './i18n.js';
+import { isCompactLayout, viewportSize } from './layout.js';
+const englishDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 const clock = new THREE.Clock();
 export let simulatedDate = new Date();
@@ -76,9 +79,9 @@ export function startAnimation() {
     if (dateDisplay) {
       const day = String(d.getUTCDate()).padStart(2, '0');
       const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-      dateDisplay.textContent = window.innerWidth <= 1100
+      dateDisplay.textContent = isCompactLayout()
         ? `📅 ${day}/${month}/${d.getUTCFullYear()}`
-        : `Ngày ${day} Tháng ${month} Năm ${d.getUTCFullYear()}`;
+        : language === 'en' ? englishDate.format(d) : `Ngày ${day} Tháng ${month} Năm ${d.getUTCFullYear()}`;
     }
 
     const msSinceEpoch = simulatedDate.getTime() - EPOCH_DATE.getTime();
@@ -255,6 +258,7 @@ export function startAnimation() {
 
     // 10. 2D Screen-space Planet Labels
     if (showLabels && !isScaleComparisonActive) {
+      const viewport = viewportSize();
       planetMeshes.forEach((mesh, idx) => {
         const label = labelElements[idx];
         if (!label) return;
@@ -263,12 +267,12 @@ export function startAnimation() {
          worldPos.y += mesh.userData.radius + (currentScaleMode === SCALE_MODES.TRUE ? 0.002 : 1.2);
 
         const screenPos = worldPos.clone().project(camera);
-         if (screenPos.z > 1 || screenPos.z < -1) {
+         if (screenPos.z > 1 || screenPos.z < -1 || Math.abs(screenPos.x) > 1.1 || Math.abs(screenPos.y) > 1.1) {
           label.style.opacity = '0';
           return;
         }
-        const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
-        const y2 = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+        const x = (screenPos.x * 0.5 + 0.5) * viewport.width;
+        const y2 = (-screenPos.y * 0.5 + 0.5) * viewport.height;
         label.style.left = x + 'px';
         label.style.top = y2 + 'px';
 

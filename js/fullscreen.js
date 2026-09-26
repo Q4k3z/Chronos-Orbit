@@ -1,3 +1,6 @@
+import { t, onLanguageChange } from './i18n.js';
+import { closeMobileOverlays } from './mobile-ui.js';
+import { isCompactLayout } from './layout.js';
 export function setupFullscreen({ onLayoutChange, onImmersiveChange }) {
   const button = document.getElementById('fullscreen-toggle');
   let nativeRequested = false;
@@ -6,11 +9,12 @@ export function setupFullscreen({ onLayoutChange, onImmersiveChange }) {
   function apply(value) {
     document.body.classList.toggle('immersive-view', value);
     button.textContent = value ? '⤡' : '⤢';
-    const label = value ? 'Thoát toàn màn hình' : 'Toàn màn hình, ẩn giao diện';
+    const label = t(value ? 'Thoát toàn màn hình' : 'Toàn màn hình, ẩn giao diện');
     button.setAttribute('aria-label', label);
     button.setAttribute('aria-pressed', String(value));
     button.title = label;
     if (value) {
+      closeMobileOverlays();
       const guide = document.getElementById('gesture-guide');
       if (guide?.open) guide.close();
     }
@@ -30,7 +34,9 @@ export function setupFullscreen({ onLayoutChange, onImmersiveChange }) {
     pending = true;
     apply(true);
     try {
-      if (document.fullscreenEnabled && document.documentElement.requestFullscreen) {
+      // Phone webviews can resize or rescale the page when native fullscreen starts.
+      // The mobile shell already fills the available screen and hides all controls.
+      if (!isCompactLayout() && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
         nativeRequested = true;
       }
@@ -49,4 +55,8 @@ export function setupFullscreen({ onLayoutChange, onImmersiveChange }) {
       event.preventDefault(); event.stopImmediatePropagation(); leave();
     }
   }, true);
+  onLanguageChange(() => {
+    const label = t(active() ? 'Thoát toàn màn hình' : 'Toàn màn hình, ẩn giao diện');
+    button.setAttribute('aria-label', label); button.title = label;
+  });
 }

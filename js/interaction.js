@@ -43,6 +43,9 @@ import {
 import { toggleAudio } from './audio.js';
 import { setSimulatedDate, simulatedDate, setShowLabels } from './animation.js';
 import { setupViewTools } from './view-tools.js';
+import { language, t, bodyName, onLanguageChange, translateContent } from './i18n.js';
+import { isCompactLayout, viewportSize } from './layout.js';
+import { englishBody } from './body-en.js';
 
 export let cameraTween = null;
 export let isZoomed = false;
@@ -93,10 +96,13 @@ export function zoomToObject(mesh, dist, resetDirection = false) {
   }
   if (['sun', 'planet', 'moon', 'comet'].includes(mesh.userData?.type)) {
     const radius = mesh.userData.radius || 0.001;
-    const mobile = window.innerWidth <= 1100;
-    const framing = mesh.userData.data?.hasRings ? (mobile ? 10.5 : 7) : (mobile ? 8.5 : 5.5);
+    const mobile = isCompactLayout();
+    const viewport = viewportSize();
+    const halfFov = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(1, viewport.width / viewport.height));
+    const framing = mobile ? (mesh.userData.data?.hasRings ? 2.5 : 1.2) / Math.sin(halfFov) * 1.45
+      : mesh.userData.data?.hasRings ? 7 : 5.5;
     const minimum = Math.max(radius * framing, currentScaleMode === SCALE_MODES.TRUE ? 0.001 : 2);
-    dist = currentScaleMode === SCALE_MODES.TRUE ? minimum : Math.max(dist, minimum);
+    dist = mobile || currentScaleMode === SCALE_MODES.TRUE ? minimum : Math.max(dist, minimum);
   }
   if (!isZoomed) {
     savedCameraState.pos = wasComparing && compareCameraState.pos ? compareCameraState.pos.clone() : camera.position.clone();
@@ -228,7 +234,7 @@ function updateDropdownSelection(id, icon, name) {
   const currentIcon = document.getElementById('current-icon');
   const currentLabel = document.getElementById('current-label');
   if (currentIcon) currentIcon.textContent = icon || '🪐';
-  if (currentLabel) currentLabel.textContent = name || 'Khám Phá Thiên Thể';
+  if (currentLabel) currentLabel.textContent = t(name || 'Khám Phá Thiên Thể');
   document.querySelectorAll('.dropdown-item').forEach(item => {
     item.classList.toggle('active', item.dataset.target === id);
   });
@@ -352,6 +358,7 @@ function setupDropdown() {
 
 // --- Info Panel ---
 export function showInfoPanel(data) {
+  if (language === 'en') data = englishBody(data);
   const panel = document.getElementById('info-panel');
   if (!panel) return;
   if (panel.dataset.bodyId !== data.id) document.body.classList.remove('info-collapsed');
@@ -364,7 +371,7 @@ export function showInfoPanel(data) {
   const nameVi = document.getElementById('p-name-vi');
   const nameEn = document.getElementById('p-name-en');
   const tagline = document.getElementById('p-tagline');
-  if (nameVi) nameVi.textContent = data.nameVi;
+  if (nameVi) nameVi.textContent = bodyName(data);
   if (nameEn) nameEn.textContent = data.nameEn;
   if (tagline) tagline.textContent = data.tagline || '';
 
@@ -402,13 +409,16 @@ export function showInfoPanel(data) {
       const targetW = (w * data.gravityRatio).toFixed(1);
       resEl.textContent = targetW + ' kg';
       if (data.gravityRatio > 2.0) {
-        factEl.textContent = '⚡ Trọng lực cực nặng! Cơ thể bạn sẽ cảm giác như đang gánh 2 người trưởng thành trên vai.';
+        factEl.textContent = t('⚡ Trọng lực cực nặng! Cơ thể bạn sẽ cảm giác như đang gánh 2 người trưởng thành trên vai.');
       } else if (data.gravityRatio < 0.2) {
-        factEl.textContent = '🚀 Trọng lực cực nhẹ! Một bước nhảy bình thường có thể đưa bạn bay bổng lơ lửng nhiều mét.';
+        factEl.textContent = t('🚀 Trọng lực cực nhẹ! Một bước nhảy bình thường có thể đưa bạn bay bổng lơ lửng nhiều mét.');
       } else if (data.gravityRatio === 1.0) {
-        factEl.textContent = '🌍 Đây là trọng lực chuẩn 1g mà cơ thể bạn đã tiến hóa để thích nghi hoàn hảo.';
+        factEl.textContent = t('🌍 Đây là trọng lực chuẩn 1g mà cơ thể bạn đã tiến hóa để thích nghi hoàn hảo.');
       } else {
-        factEl.textContent = `Bạn sẽ cảm thấy cân nặng ${(data.gravityRatio > 1 ? 'tăng' : 'giảm')} ${(Math.abs(1 - data.gravityRatio)*100).toFixed(0)}% so với khi ở Trái Đất.`;
+        const difference = (Math.abs(1 - data.gravityRatio)*100).toFixed(0);
+        factEl.textContent = language === 'en'
+          ? `You would feel ${difference}% ${data.gravityRatio > 1 ? 'heavier' : 'lighter'} than on Earth.`
+          : `Bạn sẽ cảm thấy cân nặng ${(data.gravityRatio > 1 ? 'tăng' : 'giảm')} ${difference}% so với khi ở Trái Đất.`;
       }
     }
     inputEl.addEventListener('input', updateWeight);
@@ -509,6 +519,7 @@ export function showInfoPanel(data) {
     content.appendChild(sec);
   }
 
+  translateContent(content);
   panel.classList.add('active');
   document.body.classList.add('viewing-body');
   updateCameraViewport();
@@ -627,10 +638,11 @@ function setupSettings() {
   }
 
   function close() {
+    const wasOpen = panel?.classList.contains('open');
     panel?.classList.remove('open');
     backdrop?.classList.remove('open');
     openButton?.setAttribute('aria-expanded', 'false');
-    openButton?.focus();
+    if (wasOpen) openButton?.focus();
   }
 
   openButton?.addEventListener('click', () => {
@@ -670,17 +682,24 @@ export function setupInteraction(onSpeedChange) {
     onImmersiveChange: active => { settingsController.close(); setImmersiveView(active); },
     getScale: () => ({ mode: currentScaleMode, body: selectedObject?.userData?.data })
   });
-  const layout = () => window.innerWidth > 1100 ? 'desktop'
+  const layout = () => !isCompactLayout() ? 'desktop'
     : window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
   let previousLayout = layout();
-  window.addEventListener('resize', () => {
+  let previousViewport = viewportSize();
+  const refitForLayout = () => {
     const nextLayout = layout();
-    if (nextLayout !== previousLayout && selectedObject) {
+    const viewport = viewportSize();
+    const changedScene = Math.abs(viewport.width / previousViewport.width - 1) > .12
+      || Math.abs(viewport.height / previousViewport.height - 1) > .12;
+    if (selectedObject && (nextLayout !== previousLayout || isCompactLayout() && changedScene)) {
       // Refit after rotation so a desktop close-up is not clipped on a phone.
       zoomToObject(selectedObject, selectedObject.userData.viewDistance ?? selectedObject.userData.radius * 3.5);
     }
     previousLayout = nextLayout;
-  });
+    previousViewport = viewport;
+  };
+  window.addEventListener('resize', refitForLayout);
+  window.addEventListener('chronos:viewport-resized', refitForLayout);
 
   function targetAt(clientX, clientY) {
     const bounds = renderer.domElement.getBoundingClientRect();
@@ -731,7 +750,7 @@ export function setupInteraction(onSpeedChange) {
         tooltip.style.display = displayPreferences.showTooltips ? 'block' : 'none';
         tooltip.style.left = (e.clientX + 16) + 'px';
         tooltip.style.top = (e.clientY + 16) + 'px';
-        tooltip.textContent = (u.icon ? u.icon + ' ' : '') + u.nameVi + (u.nameEn ? ' — ' + u.nameEn : '');
+        tooltip.textContent = (u.icon ? u.icon + ' ' : '') + bodyName(u) + (language === 'vi' && u.nameEn ? ' — ' + u.nameEn : '');
       }
       if (lastHighlightedOrbit && lastHighlightedOrbit !== u.id) {
         highlightOrbit(lastHighlightedOrbit, false);
@@ -792,10 +811,10 @@ export function setupInteraction(onSpeedChange) {
       const newMode = currentScaleMode === SCALE_MODES.VISUAL ? SCALE_MODES.TRUE : SCALE_MODES.VISUAL;
       setScaleMode(newMode);
       if (newMode === SCALE_MODES.VISUAL) {
-        toggleScaleBtn.innerHTML = '🔭 Trực quan';
+        toggleScaleBtn.textContent = t('🔭 Trực quan');
         toggleScaleBtn.classList.add('active');
       } else {
-        toggleScaleBtn.innerHTML = '📐 Tỉ lệ thực';
+        toggleScaleBtn.textContent = t('📐 Tỉ lệ thực');
         toggleScaleBtn.classList.remove('active');
       }
       if (selectedObject) zoomToObject(selectedObject, selectedObject.userData.viewDistance ?? Math.max((selectedObject.userData.radius || 1) * 3.5, 1.8));
@@ -830,11 +849,12 @@ export function setupInteraction(onSpeedChange) {
     if (speedSlider && speed > 0) {
       speedSlider.value = String(speedSteps.indexOf(speed) >= 0 ? speedSteps.indexOf(speed) : 3);
     }
-    speedSlider?.setAttribute('aria-valuetext', speed === 0 ? 'Đã dừng' : `${String(speed).replace('.', ',')} lần`);
-    if (speedLabel) speedLabel.textContent = `${String(speed).replace('.', ',')}×`;
+    const speedText = language === 'en' ? String(speed) : String(speed).replace('.', ',');
+    speedSlider?.setAttribute('aria-valuetext', speed === 0 ? t('Đã dừng') : `${speedText}${language === 'en' ? '×' : ' lần'}`);
+    if (speedLabel) speedLabel.textContent = `${speedText}×`;
     if (pauseButton) {
-      pauseButton.textContent = speed === 0 ? '▶ Tiếp tục' : '⏸ Dừng';
-      pauseButton.setAttribute('aria-label', speed === 0 ? 'Tiếp tục mô phỏng' : 'Dừng mô phỏng');
+      pauseButton.textContent = t(speed === 0 ? '▶ Tiếp tục' : '⏸ Dừng');
+      pauseButton.setAttribute('aria-label', t(speed === 0 ? 'Tiếp tục mô phỏng' : 'Dừng mô phỏng'));
       pauseButton.classList.toggle('active', speed === 0);
     }
     document.querySelectorAll('.speed-menu [data-speed]').forEach(button => {
@@ -873,6 +893,24 @@ export function setupInteraction(onSpeedChange) {
     setSpeedUI(speedSteps[Number(speedSlider.value)]);
   });
   setSpeedUI(1);
+  onLanguageChange(() => {
+    setSpeedUI(currentSpeed);
+    toggleScaleBtn.textContent = t(currentScaleMode === SCALE_MODES.VISUAL ? '🔭 Trực quan' : '📐 Tỉ lệ thực');
+    const data = selectedObject?.userData?.data;
+    updateDropdownSelection(data?.id, data?.icon, data?.nameVi);
+    if (data) {
+      const panel = document.getElementById('info-panel');
+      const scroll = panel.scrollTop;
+      const weight = document.getElementById('weight-input')?.value;
+      showInfoPanel(data);
+      const input = document.getElementById('weight-input');
+      if (input && weight !== undefined) { input.value = weight; input.dispatchEvent(new Event('input')); }
+      panel.scrollTop = scroll;
+    }
+    document.querySelectorAll('.planet-label').forEach((label, index) => {
+      label.textContent = bodyName(PLANETS[index]);
+    });
+  });
 
   // Toggles
   const toggleOrbits = document.getElementById('toggle-orbits');
@@ -913,7 +951,7 @@ export function setupInteraction(onSpeedChange) {
         if (isTourActive) stopAutoTour();
         cameraTween = {
           startPos: camera.position.clone(),
-          endPos: window.innerWidth <= 860 ? new THREE.Vector3(0, 35, 400) : new THREE.Vector3(0, 30, 205),
+          endPos: isCompactLayout() && window.innerWidth <= 860 ? new THREE.Vector3(0, 35, 400) : new THREE.Vector3(0, 30, 205),
           startTarget: controls.target.clone(),
           endTarget: new THREE.Vector3(0, 0, 0),
           progress: 0,

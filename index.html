@@ -2,8 +2,12 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Khám phá Hệ Mặt Trời</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Chronos-Orbit</title>
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <link rel="apple-touch-icon" href="./favicon.png">
+  <meta name="application-name" content="Chronos-Orbit">
+  <meta name="description" content="Explore the Solar System in interactive 3D with Chronos-Orbit.">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -17,7 +21,8 @@
       user-select: none;
     }
 
-    #container { width: 100vw; height: 100vh; position: absolute; inset: 0; }
+    #container { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; }
+    #container canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
 
     /* ==================== NON-BLOCKING STATUS TOAST ==================== */
     #loading-screen {
@@ -475,11 +480,7 @@
       cursor: pointer;
     }
     /* ==================== RESPONSIVE ==================== */
-    @media (max-width: 860px) {
-      #info-panel { width: 100vw; right: -100vw; }
-      .planet-name-vi { font-size: 1.6rem; }
-      #controls { width: 92vw; overflow-x: auto; justify-content: flex-start; }
-    }
+    
   
     /* ==================== DATE DISPLAY ==================== */
     #date-display {
@@ -658,123 +659,11 @@
     .speed-menu button:hover, .speed-menu button.active {
       background: rgba(56,189,248,0.18); color: #fff;
     }
-    @media (max-width: 1100px) {
-      #dropdown-container { top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); }
-      .dropdown-btn { height: 44px; max-width: min(26vw, 210px); min-width: 124px; padding: 0 11px; gap: 5px; font-size: 0.73rem; }
-      #current-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .dropdown-menu { width: min(300px, calc(100vw - 20px)); max-height: calc(100dvh - 70px); }
-      .dropdown-item { min-height: 44px; }
-      #date-display, body.viewing-body #date-display {
-        top: max(10px, env(safe-area-inset-top)); left: 50%;
-        width: auto; max-width: 36vw; padding: 10px 12px;
-        font-size: 0.78rem; white-space: nowrap; letter-spacing: 0;
-      }
-      #open-settings { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); width: 44px; height: 44px; padding: 0; font-size: 1.15rem; }
-      #open-settings .settings-label { display: none; }
-      #controls, body.viewing-body #controls {
-        left: 50%; bottom: max(8px, env(safe-area-inset-bottom));
-        width: calc(100vw - 20px); max-width: calc(100vw - 20px);
-        display: flex; flex-direction: column; align-items: stretch;
-        gap: 5px; padding: 6px 8px; border-radius: 17px;
-        overflow: visible;
-      }
-      #controls > .ctrl-divider, #speed-controls .ctrl-divider, #view-controls .ctrl-divider { display: none; }
-      #speed-controls, #view-controls {
-        display: flex; align-items: center; gap: 6px;
-        width: 100%; min-height: 40px; overflow-x: auto; scrollbar-width: none;
-      }
-      #speed-controls::-webkit-scrollbar, #view-controls::-webkit-scrollbar { display: none; }
-      #speed-controls > *, #view-controls > * { flex: 0 0 auto; white-space: nowrap; }
-      #speed-controls .speed-btn, #speed-controls .ctrl-btn,
-      #view-controls .ctrl-btn { min-height: 40px; padding: 8px 11px; font-size: 0.73rem; color: #e2e8f0; }
-      #speed-controls .slider-group { min-height: 40px; margin-left: auto; }
-      #speed-controls .speed-btn, #speed-controls #speed-pause { font-size: 0; padding: 8px 10px; }
-      #speed-decrease::after { content: '− Chậm'; font-size: 0.7rem; }
-      #speed-increase::after { content: '+ Nhanh'; font-size: 0.7rem; }
-      #speed-pause::after { content: 'Ⅱ Dừng'; font-size: 0.7rem; }
-      #speed-pause.active::after { content: '▶ Chạy'; }
-      #speed-slider { width: clamp(72px, 18vw, 120px); height: 6px; }
-      #speed-slider::-webkit-slider-thumb { width: 23px; height: 23px; }
-      #speed-slider::-moz-range-thumb { width: 23px; height: 23px; }
-      .slider-label { min-width: 32px; }
-      #view-controls { border-top: 1px solid rgba(255,255,255,0.12); padding-top: 4px; }
-      .speed-menu { bottom: calc(108px + env(safe-area-inset-bottom)); }
-      .speed-menu button { min-height: 44px; }
-      #tooltip { display: none !important; }
-      .desktop-only-setting { display: none; }
-      #date-modal { top: 60px; z-index: 350; max-height: calc(100dvh - 70px); overflow-y: auto; padding: 16px; }
-      #settings-panel { max-height: calc(100dvh - 16px); }
-      #mobile-hint { display: none; }
-      .planet-label { font-size: 0.62rem; }
-    }
-    @media (max-width: 1100px) and (orientation: landscape) {
-      #info-panel {
-        width: clamp(300px, 41vw, 420px); height: 100dvh;
-        top: 0; bottom: auto; right: -430px; padding-bottom: 12px;
-      }
-      #info-panel.active { right: 0; }
-      body.viewing-body #controls {
-        left: calc((100vw - clamp(300px, 41vw, 420px)) / 2);
-        width: calc(100vw - clamp(300px, 41vw, 420px) - 16px);
-        max-width: calc(100vw - clamp(300px, 41vw, 420px) - 16px);
-      }
-      body.viewing-body #date-display {
-        left: calc((100vw - clamp(300px, 41vw, 420px)) / 2);
-        max-width: calc(100vw - clamp(300px, 41vw, 420px) - 145px);
-        top: 60px;
-      }
-      #back-btn { top: 10px; right: 10px; min-height: 40px; padding: 6px 10px; font-size: 0.7rem; }
-      .panel-header { padding: 64px 18px 18px; }
-      .planet-name-vi { font-size: 1.65rem; }
-      .panel-content { padding: 14px 16px 20px; }
-      .info-section { padding: 12px; margin-bottom: 12px; }
-      body.viewing-body .speed-menu { bottom: calc(108px + env(safe-area-inset-bottom)); }
-    }
-    @media (max-width: 1100px) and (orientation: portrait) {
-      #dropdown-container { top: calc(60px + env(safe-area-inset-top)); }
-      .dropdown-btn { max-width: min(58vw, 240px); }
-      #date-display, body.viewing-body #date-display { top: max(10px, env(safe-area-inset-top)); max-width: calc(100vw - 90px); }
-      #mobile-hint {
-        display: block; position: fixed; top: calc(114px + env(safe-area-inset-top));
-        left: 50%; transform: translateX(-50%); z-index: 45;
-        max-width: calc(100vw - 20px); padding: 6px 10px;
-        border-radius: 12px; background: rgba(10,16,38,0.72);
-        color: #b9d8eb; font-size: 0.67rem; text-align: center;
-        line-height: 1.5; white-space: nowrap;
-        pointer-events: none;
-      }
-      body.viewing-body #mobile-hint { display: none; }
-      #info-panel {
-        width: 100vw; height: 46dvh; top: auto; right: 0; bottom: -46dvh;
-        transition: bottom 0.35s ease; border-left: 0;
-        border-top: 1px solid rgba(255,255,255,0.25); padding-bottom: 20px;
-      }
-      #info-panel.active { right: 0; bottom: 0; }
-      #back-btn { top: calc(54dvh + 9px); right: 12px; min-height: 40px; padding: 7px 11px; font-size: 0.7rem; }
-      .panel-header { padding: 14px 18px 12px; padding-right: 148px; }
-      .planet-name-vi { font-size: 1.45rem; }
-      .planet-name-en { font-size: 0.66rem; margin-top: 2px; }
-      .planet-tagline { font-size: 0.75rem; margin-top: 6px; }
-      .panel-content { padding: 14px 16px 20px; }
-      .info-section { padding: 12px; margin-bottom: 12px; }
-      body.viewing-body #controls { bottom: calc(46dvh + 8px); }
-      body.viewing-body .speed-menu { bottom: calc(46dvh + 108px); }
-      #comparison-banner { top: auto; bottom: 110px; width: calc(100vw - 20px); padding: 9px 14px; border-radius: 16px; }
-    }
-    @media (max-width: 370px) {
-      #speed-controls .speed-btn, #speed-controls .ctrl-btn { padding: 8px 6px; font-size: 0; }
-      #speed-decrease::after, #speed-increase::after, #speed-pause::after { font-size: 0.66rem; }
-      #speed-controls .slider-group { gap: 4px; }
-      #speed-controls .slider-label { min-width: 26px; }
-      #speed-slider { width: 54px; }
-    }
-    @media (max-width: 700px) and (orientation: landscape) {
-      #speed-controls .speed-btn { font-size: 0; padding: 8px; }
-      #speed-decrease::after { content: '− Chậm'; font-size: 0.68rem; }
-      #speed-increase::after { content: '+ Nhanh'; font-size: 0.68rem; }
-      #speed-controls #speed-pause { padding: 8px; }
-      #speed-slider { width: 72px; }
-    }
+    
+    
+    
+    
+    
 
     #settings-backdrop {
       position: fixed; inset: 0; z-index: 390;
@@ -829,12 +718,7 @@
     .settings-actions button:focus-visible, #open-settings:focus-visible {
       outline: 2px solid #7dd3fc; outline-offset: 2px;
     }
-    @media (max-width: 860px) {
-      #settings-panel {
-        top: auto; right: 0; bottom: 0; width: 100%;
-        max-height: min(78vh, 680px); border-radius: 22px 22px 0 0;
-      }
-    }
+    
     /* View tools, first-use help and scale explanations. */
     #camera-tools {
       position: fixed; right: 20px; top: 80px; z-index: 180;
@@ -868,33 +752,9 @@
     .gesture-list { display: grid; gap: 10px; list-style: none; }
     .gesture-list li { padding: 10px 12px; background: #1a2d46; border-radius: 12px; font-size: 0.84rem; line-height: 1.5; }
     #gesture-guide-close { width: 100%; min-height: 44px; margin-top: 18px; background: #0377a8; color: #fff; }
-    @media (max-width: 1100px) {
-      #camera-tools { right: max(10px, env(safe-area-inset-right)); top: 64px; }
-      #scale-note { top: 62px; }
-      #scale-note-close { width: 40px; height: 40px; }
-    }
-    @media (max-width: 1100px) and (orientation: landscape) {
-      body.viewing-body #camera-tools { right: calc(clamp(300px, 41vw, 420px) + 10px); top: 110px; }
-      body.viewing-body #scale-note { left: calc((100vw - clamp(300px, 41vw, 420px)) / 2); width: calc(100vw - clamp(300px, 41vw, 420px) - 20px); max-height: calc(100dvh - 74px); overflow-y: auto; }
-    }
-    @media (max-width: 1100px) and (orientation: portrait) {
-      body.viewing-body #camera-tools { right: 10px; }
-      body.viewing-body #scale-note { left: 50%; max-height: calc(54dvh - 74px); overflow-y: auto; }
-      body.viewing-body #info-collapse {
-        display: block; position: fixed; z-index: 155; top: calc(54dvh + 9px);
-        right: 133px; width: 44px; height: 44px; padding: 0; font-size: 1.3rem;
-      }
-      #back-btn { min-height: 44px; }
-      .panel-header { padding-right: 18px; }
-      .planet-name-vi, .planet-name-en { max-width: calc(100vw - 200px); }
-      body.info-collapsed #info-panel { height: 88px; }
-      body.info-collapsed #panel-content, body.info-collapsed #p-tagline, body.info-collapsed #p-name-en { display: none; }
-      body.info-collapsed #info-panel .panel-header { border: 0; }
-      body.info-collapsed #p-name-vi { font-size: 1.1rem; }
-      body.info-collapsed #controls { bottom: 96px; }
-      body.info-collapsed .speed-menu { bottom: 196px; }
-      body.info-collapsed #info-collapse, body.info-collapsed #back-btn { top: calc(100dvh - 79px); }
-    }
+    
+    
+    
     #fullscreen-toggle {
       position: fixed; right: max(12px, env(safe-area-inset-right));
       bottom: max(12px, env(safe-area-inset-bottom)); z-index: 380;
@@ -902,21 +762,15 @@
       background: rgba(18, 33, 54, .8); color: #ccecff;
     }
     body.viewing-body #fullscreen-toggle { bottom: auto; top: max(12px, env(safe-area-inset-top)); right: 490px; }
-    body.immersive-view > :not(#container):not(#fullscreen-toggle):not(script) { display: none !important; }
+    body.immersive-view > :not(#container):not(#fullscreen-toggle):not(#mobile-shell):not(script) { display: none !important; }
     body.immersive-view #fullscreen-toggle { top: auto; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); opacity: .6; }
     body.immersive-view #fullscreen-toggle:hover, body.immersive-view #fullscreen-toggle:focus-visible { opacity: 1; }
-    @media (max-width: 1100px) {
-      #fullscreen-toggle { top: max(10px, env(safe-area-inset-top)); bottom: auto; right: 64px; }
-      body.viewing-body #fullscreen-toggle { top: max(10px, env(safe-area-inset-top)); right: 10px; }
-      body.viewing-body.immersive-view #fullscreen-toggle { top: auto; right: 12px; }
-    }
-    @media (max-width: 1100px) and (orientation: landscape) {
-      body.viewing-body #fullscreen-toggle { right: calc(clamp(300px, 41vw, 420px) + 10px); }
-    }
-    @media (max-width: 1100px) and (orientation: portrait) {
-      #date-display, body.viewing-body #date-display { left: calc(50% - 24px); max-width: calc(100vw - 150px); }
-    }
+    
+    
+    
   </style>
+  <link rel="stylesheet" href="css/liquidify.css">
+  <link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
 
@@ -937,6 +791,23 @@
 
   <!-- 3D Container -->
   <div id="container"></div>
+  <div id="mobile-shell" hidden>
+    <header id="mobile-header"></header>
+    <main id="mobile-workspace">
+      <section id="mobile-scene" aria-label="Mô phỏng 3D">
+        <div id="mobile-onboarding" hidden>
+          <p>Chạm chọn · Vuốt xoay · Chụm để phóng</p>
+          <button id="mobile-onboarding-close" type="button">Đã hiểu</button>
+        </div>
+      </section>
+      <aside id="mobile-detail"></aside>
+    </main>
+    <footer id="mobile-footer"></footer>
+    <section id="mobile-more-panel" hidden aria-label="Thêm tùy chọn">
+      <div id="mobile-more-content"></div>
+    </section>
+  </div>
+  <button id="mobile-more-toggle" type="button" hidden aria-expanded="false" aria-controls="mobile-more-panel">⋯ Thêm</button>
 
   <!-- Title -->
     <!-- Date Display -->
@@ -1148,11 +1019,17 @@
     <div class="settings-header">
       <div>
         <h2 id="settings-title">⚙ Cài đặt hiển thị</h2>
+        <div class="brand-mark">Chronos-Orbit</div>
         <p>Các lựa chọn được lưu trên trình duyệt này.</p>
       </div>
       <button id="settings-close" type="button" aria-label="Đóng cài đặt">×</button>
     </div>
     <div class="settings-content">
+      <div class="settings-group">
+        <label class="setting-row" for="language-select"><span>Ngôn ngữ</span>
+          <select id="language-select"><option value="vi">Tiếng Việt</option><option value="en">English</option></select>
+        </label>
+      </div>
       <div class="settings-group">
         <h3>Thông tin hiển thị</h3>
         <label class="setting-row"><span>Đường quỹ đạo</span><input type="checkbox" data-setting="showOrbits" checked></label>
@@ -1211,6 +1088,8 @@
   }
   </script>
 
+  <script type="module" src="js/i18n.js"></script>
+  <script type="module" src="js/mobile-ui.js"></script>
   <script type="module" src="js/main.js"></script>
   <script>
     window.astraStartup = {
@@ -1231,11 +1110,11 @@
         var toast = document.getElementById('loading-screen');
         var text = document.getElementById('loading-text');
         if (!toast || !text) return;
-        text.textContent = message;
+        text.textContent = window.chronosT ? window.chronosT(message) : message;
         toast.classList.add('error');
         var retry = document.createElement('button');
         retry.type = 'button';
-        retry.textContent = 'Thử lại';
+        retry.textContent = window.chronosT ? window.chronosT('Thử lại') : 'Thử lại';
         retry.addEventListener('click', function() { window.location.reload(); });
         if (!toast.querySelector('button')) toast.appendChild(retry);
       }

@@ -32,6 +32,7 @@ import { sunCutawayGroup } from './sun.js';
 import { sunMesh } from './sun.js';
 import { getPlanetOrbitPointAU, getHalleyOrbitPointAU } from './ephemeris.js';
 import { getHalleyVisualPosition } from './halley-visual.js';
+import { bodyName } from './i18n.js';
 import {
   AU_KM, SUN_RADIUS_KM, PLANET_RADIUS_KM,
   JUPITER_MOON_RADIUS_KM, kmToSceneUnits
@@ -880,7 +881,7 @@ export function buildPlanets() {
 
     const label = document.createElement('div');
     label.className = 'planet-label';
-    label.textContent = p.nameVi;
+    label.textContent = bodyName(p);
     if (labelsContainer) labelsContainer.appendChild(label);
     labelElements.push(label);
   });

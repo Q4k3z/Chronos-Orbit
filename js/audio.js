@@ -2,6 +2,7 @@
 //  COSMIC AUDIO SYNTH (Web Audio API)
 // ============================================================
 
+import { t, onLanguageChange } from './i18n.js';
 let audioCtx = null;
 let isAudioPlaying = false;
 let masterGain = null;
@@ -61,11 +62,15 @@ export function toggleAudio() {
 
   if (isAudioPlaying) {
     masterGain.gain.setTargetAtTime(0.12, audioCtx.currentTime, 1.2);
-    btn.innerHTML = '\uD83D\uDD0A V\u0169 tr\u1EE5 <span class="audio-indicator"></span>';
+    btn.innerHTML = t('🔊 Vũ trụ') + ' <span class="audio-indicator"></span>';
     btn.classList.add('active');
   } else {
     masterGain.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.8);
-    btn.innerHTML = '\uD83D\uDD07 \u00C2m thanh';
+    btn.textContent = t('🔇 Âm thanh');
     btn.classList.remove('active');
   }
 }
+onLanguageChange(() => {
+  const btn = document.getElementById('toggle-audio');
+  if (btn) btn.innerHTML = isAudioPlaying ? t('🔊 Vũ trụ') + ' <span class="audio-indicator"></span>' : t('🔇 Âm thanh');
+});

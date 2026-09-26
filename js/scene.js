@@ -4,18 +4,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { fbm3D, turbulence3D, clamp } from './noise.js';
+import { isCompactLayout, viewportSize } from './layout.js';
+import './mobile-ui.js';
 
 // --- Scene Setup ---
 export const scene = new THREE.Scene();
 // Deep astronomical cosmic background
 scene.background = new THREE.Color(0x060a1c);
 
-export const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.000005, 50000);
+const initialViewport = viewportSize();
+export const camera = new THREE.PerspectiveCamera(55, initialViewport.width / initialViewport.height, 0.000005, 50000);
 camera.position.set(65, 85, 160);
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(initialViewport.width, initialViewport.height);
+const renderPixelRatio = (width, height) => Math.min(window.devicePixelRatio || 1, 2,
+  isCompactLayout() ? Math.sqrt(3200000 / (width * height)) : 2);
+renderer.setPixelRatio(renderPixelRatio(initialViewport.width, initialViewport.height));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.30;
@@ -270,16 +275,10 @@ export function updateStarfield(time) {
 
 // --- Resize and framing for the visible part of a mobile scene ---
 export function updateCameraViewport() {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  const { width, height } = viewportSize();
   camera.aspect = width / height;
-  if (document.body.classList.contains('viewing-body') && !document.body.classList.contains('immersive-view')) {
-    const hasSidePanel = width > 1100 || width > height;
-    const sidePanel = width > 1100 ? 480 : Math.min(420, Math.max(300, width * 0.41));
-    const offsetX = hasSidePanel ? sidePanel / 2 : 0;
-    const offsetY = hasSidePanel ? 0
-      : document.body.classList.contains('info-collapsed') ? 95 : height * 0.22;
-    camera.setViewOffset(width, height, offsetX, offsetY, width, height);
+  if (!isCompactLayout() && document.body.classList.contains('viewing-body') && !document.body.classList.contains('immersive-view')) {
+    camera.setViewOffset(width, height, 240, 0, width, height);
   } else {
     camera.clearViewOffset();
   }
@@ -287,8 +286,26 @@ export function updateCameraViewport() {
 }
 
 export function setupResize() {
-  window.addEventListener('resize', () => {
+  let lastWidth = 0;
+  let lastHeight = 0;
+  let frame = 0;
+  const sync = () => {
+    frame = 0;
+    const { width, height } = viewportSize();
+    if (width === lastWidth && height === lastHeight) return;
+    lastWidth = width;
+    lastHeight = height;
     updateCameraViewport();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    const nextRatio = renderPixelRatio(width, height);
+    if (Math.abs(renderer.getPixelRatio() - nextRatio) > 0.02) renderer.setPixelRatio(nextRatio);
+    renderer.setSize(width, height);
+    window.dispatchEvent(new Event('chronos:viewport-resized'));
+  };
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(sync); };
+  window.addEventListener('resize', schedule);
+  window.addEventListener('chronos:layout-changed', schedule);
+  window.addEventListener('orientationchange', schedule);
+  window.visualViewport?.addEventListener('resize', schedule);
+  if (window.ResizeObserver) new ResizeObserver(schedule).observe(document.getElementById('container'));
+  schedule();
 }

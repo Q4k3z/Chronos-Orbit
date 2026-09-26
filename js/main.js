@@ -1,5 +1,5 @@
 // ============================================================
-//  ENTRY POINT - ASTRA SOLAR SYSTEM 3D
+//  ENTRY POINT - CHRONOS-ORBIT
 // ============================================================
 import { createStarfield, setupResize } from './scene.js';
 import { createSun } from './sun.js';
@@ -10,6 +10,7 @@ import {
 import { setupInteraction } from './interaction.js';
 import { startAnimation, setSimulationSpeed } from './animation.js';
 import { initializeVisualAssets } from './visual-assets.js';
+import { t } from './i18n.js';
 
 function init() {
   const loadingText = document.getElementById('loading-text');
@@ -34,14 +35,14 @@ function init() {
     // 3. Start render loop
     startAnimation();
 
-    if (loadingText) loadingText.textContent = '🚀 Hệ Mặt Trời đã sẵn sàng!';
+    if (loadingText) loadingText.textContent = t('🚀 Chronos-Orbit đã sẵn sàng!');
     window.astraStartup?.ready();
     if (new URLSearchParams(window.location.search).get('test') === '1') {
       import('../tests/app-probe.js').then(module => module.installProbe());
     }
   } catch (err) {
     console.error('Initialization error:', err);
-    window.astraStartup?.fail('Không thể khởi tạo mô phỏng 3D. ' + (err?.message || 'Hãy tải lại trang.'));
+    window.astraStartup?.fail(t('Không thể khởi tạo mô phỏng 3D. ') + (err?.message || t('Hãy tải lại trang.')));
   }
 }
 
